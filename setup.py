@@ -29,7 +29,7 @@ setup(name=NAME,
       url=DOWNLOAD_URL,
       download_url=DOWNLOAD_URL,
       license=LICENSE,
-      packages=['jme', ],
+      packages=['jme.drs', ],
       classifiers=[
           'Development Status :: 4 - Beta',
           'Environment :: Console',

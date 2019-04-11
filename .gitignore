@@ -1,5 +1,7 @@
-test/output
-remote
+test/output/
+build/
+dist/
 *.swp
 *.pyc
-.snakemake
+*.egg-info/
+.snakemake/
