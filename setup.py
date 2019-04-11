@@ -31,10 +31,10 @@ setup(name=NAME,
       license=LICENSE,
       packages=['jme.drs', ],
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 3 - Alpha',
           'Environment :: Console',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: GPL License',
           'Natural Language :: English',
-          'Programming Language :: Python :: 3.7'],
+          'Programming Language :: Python :: 3'],
       )
