@@ -193,6 +193,18 @@ def remote_wrapper(source, config, glob=False):
     return local_path
 
 
+def get_dl_snakefile():
+    """ attempt to locate downloads.snake """
+    if "CONDA_PREFIX" in os.environ:
+        return os.environ['CONDA_PREFIX'] + "/share/drs/download.snake"
+
+    # two dirs up from here if working from repo
+    return os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))) + "/download.snake"
+
+
+
 def apply_defaults(config, defaults):
     """ recursively appy defaults to nested dicts """
     for param, pdefaults in defaults.items():
