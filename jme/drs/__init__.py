@@ -196,7 +196,7 @@ def remote_wrapper(source, config, glob=False):
 def get_dl_snakefile():
     """ attempt to locate downloads.snake """
     if "CONDA_PREFIX" in os.environ:
-        return os.environ['CONDA_PREFIX'] + "/share/drs/download.snake"
+        return os.environ['CONDA_PREFIX'] + "/share/drs/snake/download.snake"
 
     # two dirs up from here if working from repo
     return os.path.dirname(
