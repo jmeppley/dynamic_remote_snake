@@ -1,0 +1,80 @@
+"""
+if you include this workflow and pass file names through remote_wrapper()
+snakemake will download file to local copy first
+
+remote_wrapper returns the input if the input is a local file path. It returns
+the path to the downloaded file if the file is a remote url
+or matches any of the configured patterns.
+
+This allows a workflow to be designed to accept either remote or local files
+from the configuration. It can even work for glob_wildcard strings, just add
+glob=True to the remote_wrapper call!
+
+There are two mechanisms:
+
+    1) protocol prefix
+    If a file path looks like a remote path (eg starts with SFTP), then the
+    appropriate remote is used. Works for SFTP, SCP, FTP, HTTP
+
+    2) custom translator
+    A user can supply a set of regular_expression patterns to identify paths
+    that may be available remotely and translate them into remote urls
+
+Important NOTES:
+
+    * The workflow MUST pass a file through remote wrapper for this to work
+    * SFTP wildcards are expended with the SFTP module, but rsync is used to
+    download (bc it does checksums)
+    This loses snakemake's ability to notice changes to remote files. :(
+    * by default, SFTP uses the 'readonly' user with no passwd, this can be
+    changed in the config. Passwords are not supported because it was
+    complicated to do so with rsync and because its a horribl idea to put
+    passwords in config files.
+
+Example custom config:
+
+remote:
+    mappings:
+        - pattern: "(/mnt/([^/]+)/.+)"
+          host_repl: "\\2.subnet.hawaii.edu"
+          path_repl: "\\1"
+    SFTP:
+        use_rsync: True
+        default:
+            username: jmeppley
+        public.server.edu:
+            username: anonymous
+
+
+
+"""
+from jme.drs import remote_wrapper
+
+download_map = config.setdefault('download_map', {})
+
+# snakemake remotes don't work with slurm
+localrules: download_remote
+
+rule download_remote:
+    """
+    Uses snakemake remote mechanism to download file 
+    and creates temporary symlink in remote/ to avoid name collisions
+    """
+    input: lambda w: download_map[w.dl_path]['remote']
+    output: config.get('remote_path', 'remote') + "/{dl_path}"
+    shell: """
+    rm -f {output}
+    mv {input} {output}
+    """
+    
+rule download_rsync:
+    output: temp("rsync/{dl_path}")
+    params:
+        host=lambda w: download_map[w.dl_path]['host'],
+        remote_path=lambda w: download_map[w.dl_path]['remote_path'],
+        user=lambda w: download_map[w.dl_path]['user'],
+        dl_path=lambda w: os.path.dirname("rsync/" + w.dl_path)
+    shell: """
+            mkdir -p {params.dl_path}
+            rsync -a {params.user}@{params.host}:{params.remote_path} {params.dl_path}
+           """

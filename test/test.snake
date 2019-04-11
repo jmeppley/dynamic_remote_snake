@@ -1,0 +1,54 @@
+from jme.drs import apply_defaults, remote_wrapper
+
+# prefix for generated files
+fprf = 'test/output/'
+
+defaults = {
+    'remote_path': fprf + "remote",
+    'files_to_inspect': {
+        'local': 'setup.py',
+        'remote': 'HTTPS://github.com/jmeppley/workflows/blob/master/README.md',
+    },
+    'globs': {
+        'local': 'jme/drs/{file_name}',
+    }
+}
+
+# push to the config
+apply_defaults(config, defaults)
+
+# expand globs
+file_name_dict = {}
+for name, glob in config['globs'].items():
+    print(name, glob)
+    file_names, = remote_wrapper(glob, config, glob=True)
+    file_name_dict[name] = file_names
+    for file_name in file_names:
+        fkey = name + "/" + file_name
+        config['files_to_inspect'][fkey] = glob.format(file_name=file_name)
+
+include: '../download.snake'
+
+rule outputs:
+    input:
+        counts=expand(fprf + '{name}.wc', name=config['files_to_inspect']),
+        lists=expand(fprf + '{name}.files', name=config['globs'])
+
+rule inspect_with_wc:
+    input: lambda w: remote_wrapper(config['files_to_inspect'][w.name], \
+                                    config)
+    output: fprf + '{name}.wc'
+    shell: """
+    if [ -d {input} ]; then
+        ls -1 {input} | grep -c .
+    else
+        wc {input}
+    fi > {output}
+    """
+
+rule list_files:
+    output: fprf + '{name}.files'
+    run:
+        with open(output[0], 'wt') as output_handle:
+            for file_name in file_name_dict[wildcards.name]:
+                output_handle.write(file_name + "\n")

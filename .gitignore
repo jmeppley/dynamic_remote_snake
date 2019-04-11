@@ -1,0 +1,5 @@
+test/output
+remote
+*.swp
+*.pyc
+.snakemake
