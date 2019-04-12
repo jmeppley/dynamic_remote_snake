@@ -119,7 +119,9 @@ def infer_provider(source, config, glob=False):
             return None, source
 
         # special case: custom patterns
-        for custom_patterns in config.get('mappings', []):
+        for custom_patterns in config \
+                               .get('remote', {}) \
+                               .get('mappings', []):
             mnt_rexp = re.compile(custom_patterns['pattern'])
             host_repl = custom_patterns['host_repl']
             path_repl = custom_patterns['path_repl']
