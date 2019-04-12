@@ -133,8 +133,8 @@ def infer_provider(source, config, glob=False):
                   .setdefault(protocol, {}) \
                   .setdefault('defaults', {'username': 'readonly',
                                           })
-            source_path = mnt_rexp.sub(source, path_repl)
-            host = mnt_rexp.sub(source, host_repl)
+            source_path = mnt_rexp.sub(path_repl, source)
+            host = mnt_rexp.sub(host_repl, source)
             source_path = host + source_path
             return get_provider(protocol, host, config), source_path
 
