@@ -42,7 +42,7 @@ from snakemake.io import ancient
 from snakemake.workflow import glob_wildcards
 
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 
 URL_REXP = re.compile(r'^([A-Za-z]+)://(([^/]+)/.+)$')
