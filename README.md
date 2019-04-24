@@ -34,3 +34,10 @@ For globs:
 wildcards = remote_wrapper(glob_string, config, glob=True)
 ```
 
+#### Resources
+The download rules declare 3 resources that you can limit at runtime with the
+--resources flag:
+
+ * disk=1
+ * download=1
+ * mem_mb=1000
