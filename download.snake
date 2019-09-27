@@ -44,13 +44,16 @@ remote:
             username: jmeppley
         public.server.edu:
             username: anonymous
+<<<<<<< HEAD
     cache:
         path: /path/to/shared_cahce
         exclude:
             - /mnt/sequencingdata
+=======
+>>>>>>> 27ef3f3e946cdcd831c2cf40484ff7af32d962d5
 
 """
-from jme.drs import remote_wrapper
+from jme.drs.remote import remote_wrapper
 
 download_map = config.setdefault('download_map', {})
 
