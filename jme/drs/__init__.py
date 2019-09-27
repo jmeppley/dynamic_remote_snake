@@ -19,8 +19,8 @@ Important NOTES:
     * The workflow has to pass a file through remote wrapper for this to work
     * SFTP wildcards are expended with the SFTP module, but rsync is used to
     download (bc it does checksums)
-    * by default, SFTP uses the 'readonly' user with no passwd, this can be
-    changed in the config. We strongly suggest using ssh keys and agents    i
+    * by default, SFTP uses the current user with no passwd, this can be
+    changed in the config. We strongly suggest using ssh keys and agents
     to avoid putting passwords in config files!
 
 Example custom config:
@@ -40,6 +40,7 @@ from snakemake import logger
 from snakemake.remote.SFTP import RemoteProvider as sftp_rp
 from snakemake.io import ancient
 from snakemake.workflow import glob_wildcards
+from jme.stagecache.util import parse_url
 
 
 __version__ = "0.0.5"
@@ -85,20 +86,12 @@ def get_provider(protocol, host, config):
         elif protocol == 'FTP':
             from snakemake.remote.FTP import RemoteProvider as ftp_rp
             providers[provider_key] = ftp_rp(**remote_options)
+        elif protocol == 'file':
+            return None
         else:
             raise Exception("Remote protocol {} not yet supported"
                             .format(provider_key[0]))
     return providers[provider_key]
-
-def path_up_to_wildcard(full_path):
-    """ If a given path has a wildcard placeholder ( eg {sample} ),
-    return the last directory before that point """
-    path_fragment = full_path.split('{')[0]
-    if path_fragment == full_path:
-        return full_path
-    if path_fragment.endswith(os.path.pathsep):
-        return path_fragment[:-1]
-    return os.path.dirname(path_fragment)
 
 def infer_provider(source, config, glob=False):
     """
@@ -107,38 +100,12 @@ def infer_provider(source, config, glob=False):
     try:
         # is it an explicit url
         # (EG: SFTP://lys.soest.hawaii.edu/mnt/lysine/...)
-        match = URL_REXP.search(source)
-        if match is not None:
+        resource = parse_url(source, config, use_local=True, has_wildcards=glob)
+        if resource is not None:
             logger.debug("EXPLICIT URL")
             # replace source file with a remote object
-            protocol, source_path, host = match.groups()
-            return get_provider(protocol, host, config), source_path
+            return get_provider(resource), source_path
 
-        if os.path.exists(path_up_to_wildcard(source) \
-                          if glob else source):
-            return None, source
-
-        # special case: custom patterns
-        for custom_patterns in config \
-                               .get('remote', {}) \
-                               .get('mappings', []):
-            mnt_rexp = re.compile(custom_patterns['pattern'])
-            host_repl = custom_patterns['host_repl']
-            path_repl = custom_patterns['path_repl']
-
-            if not mnt_rexp.search(source):
-                continue
-
-            logger.debug("INFERRED URL")
-            protocol = 'SFTP'
-            config.setdefault('remote', {}) \
-                  .setdefault(protocol, {}) \
-                  .setdefault('defaults', {'username': 'readonly',
-                                          })
-            source_path = mnt_rexp.sub(path_repl, source)
-            host = mnt_rexp.sub(host_repl, source)
-            source_path = host + source_path
-            return get_provider(protocol, host, config), source_path
 
     except Exception as exc:
         print("Error in remote check: " + repr(exc))
@@ -162,7 +129,7 @@ def remote_wrapper(source, config, glob=False):
             return glob_wildcards(source)
         return provider.glob_wildcards(source)
 
-    # other wise its a normal file
+    # otherwise it's a normal file
 
     # return input if it's not remote
     if provider is None:
@@ -172,9 +139,13 @@ def remote_wrapper(source, config, glob=False):
     use_rsync_for_sftp = config.get('remote', {}) \
                              .get('SFTP', {}) \
                              .get('use_rsync', True)
+    use_cache = 'cache' in gonfig.get('remote', {})
     host, path = source.split("/", 1)
     full_path = "/" + path
-    if isinstance(provider, sftp_rp) and use_rsync_for_sftp:
+    if isinstance(provider, sftp_rp):
+        if use_cache:
+            local_path = 
+        ifCand use_rsync_for_sftp:
         # download with rsync
         local_path = ancient("rsync/" + source)
         config.setdefault('download_map', {})[source] = \
