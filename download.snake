@@ -45,10 +45,8 @@ remote:
         public.server.edu:
             username: anonymous
 
-
-
 """
-from jme.drs import remote_wrapper
+from jme.drs.remote import remote_wrapper
 
 download_map = config.setdefault('download_map', {})
 
