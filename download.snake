@@ -59,7 +59,7 @@ remote:
             - /mnt/sequencingdata
 
 """
-from jme.drs.remote import remote_wrapper
+from dynamic_remote_snake.remote import remote_wrapper
 
 download_map = config.setdefault('download_map', {})
 
