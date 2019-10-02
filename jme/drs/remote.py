@@ -41,6 +41,8 @@ from snakemake.remote.SFTP import RemoteProvider as sftp_rp
 from snakemake.io import ancient
 from snakemake.workflow import glob_wildcards
 from jme.stagecache.util import parse_url
+from jme.stagecache.main import cache_target
+from jme.stagecache.util import InsufficientSpaceError
 
 
 __version__ = "0.0.5"
@@ -71,7 +73,7 @@ def get_provider(protocol, host, config):
     if provider_key not in providers:
         remote_defaults = config.get('remote', {}) \
                                 .get(protocol, {}) \
-                                .get('defaults', {})
+                                .get('default', {})
         remote_options = config.get('remote', {}) \
                                 .get(protocol, {}) \
                                 .get(host, {})
@@ -113,14 +115,25 @@ def infer_provider(source, config, glob=False):
 
     return None, source
 
-def remote_wrapper(source, config, glob=False):
+def get_cache_path(remote_path, config):
+    cache_data = config.get('remote', {}).get('cache', {})
+    if 'path' not in cache_data:
+        return None
+
+    cache_path = cache_data['path']
+    for exclude_pattern in cache_data.get('exclude', []):
+        if re.search(exclude_pattern, remote_path):
+            return None
+    return cache_path
+
+def remote_wrapper(raw_source, config, glob=False):
     """
     if file is a remote url
          ( or a missing netowrk mount )
     return remote provider object for downloading
     or return wildcard lists if glob=True (using glob_wildcards)
     """
-    provider, source = infer_provider(source, config, glob=glob)
+    provider, source = infer_provider(raw_source, config, glob=glob)
     logger.debug("provider: {}\nsource: {}".format(provider, source))
 
     # handle wilcard glob strings
@@ -135,34 +148,48 @@ def remote_wrapper(source, config, glob=False):
     if provider is None:
         return source
 
-    # return provider.remote(source), unless using rsync
+    # return provider.remote(source), unless using rsync or cache
     use_rsync_for_sftp = config.get('remote', {}) \
                              .get('SFTP', {}) \
                              .get('use_rsync', True)
-    use_cache = 'cache' in gonfig.get('remote', {})
+    cache_path = get_cache_path(source, config)
     host, path = source.split("/", 1)
     full_path = "/" + path
     if isinstance(provider, sftp_rp):
-        if use_cache:
-            local_path = 
-        ifCand use_rsync_for_sftp:
-        # download with rsync
-        local_path = ancient("rsync/" + source)
-        config.setdefault('download_map', {})[source] = \
-                {'host': host, 'remote_path': full_path,
-                 'user': provider.kwargs['username']}
-    else:
-        # use remote()
-        local_path = config.get('remote_path', 'remote') + '/' + source
-        remote_file = provider.remote(source)
-        if isinstance(remote_file, list):
-            if len(remote_file) == 1:
-                remote_file = remote_file[0]
+        if cache_path is not None:
+            cache_time = config['remote']['cache'].get('time', None)
+            try:
+                local_path = cache_target(raw_source, cache_path,
+                                          time=cache_time,
+                                          dry_run=True)
+            except InsufficientSpaceError as ise:
+                # fall back to local rsync if the cache is full
+                pass
             else:
-                raise Exception("multiple file remote: " +
-                                str(remote_file))
-        config.setdefault('download_map', {})[source] = \
-                {'remote': remote_file}
+                config.setdefault('download_map', {})[source] = \
+                        {'url': raw_source}
+                return local_path
+
+        if use_rsync_for_sftp:
+                # download with rsync
+                config.setdefault('download_map', {})[source] = \
+                        {'host': host, 'remote_path': full_path,
+                         'user': provider.kwargs['username']}
+                return ancient("rsync/" + source)
+
+        # if neither, just use remote
+
+    # use remote()
+    local_path = config.get('remote_path', 'remote') + '/' + source
+    remote_file = provider.remote(source)
+    if isinstance(remote_file, list):
+        if len(remote_file) == 1:
+            remote_file = remote_file[0]
+        else:
+            raise Exception("multiple file remote: " +
+                            str(remote_file))
+    config.setdefault('download_map', {})[source] = \
+            {'remote': remote_file}
     return local_path
 
 
