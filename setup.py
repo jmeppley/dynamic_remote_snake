@@ -1,11 +1,8 @@
 """
 Packaging instructions
 """
-import dynamic_remote_snake
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from jme import dynamic_remote_snake
+from setuptools import setup, find_namespace_packages
 
 DESCRIPTION = "Snakemake includes for picking up remote files"
 LONG_DESCRIPTION = dynamic_remote_snake.__doc__
@@ -29,7 +26,7 @@ setup(name=NAME,
       url=DOWNLOAD_URL,
       download_url=DOWNLOAD_URL,
       license=LICENSE,
-      packages=['dynamic_remote_snake', ],
+	  packages=find_namespace_packages(include=['jme.*']),
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
