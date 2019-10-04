@@ -1,4 +1,4 @@
-from dynamic_remote_snake.remote import *
+from jme.dynamic_remote_snake.remote import *
 
 def test_apply_defaults():
     " make sure this works as intended "

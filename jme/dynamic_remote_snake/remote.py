@@ -4,9 +4,9 @@ from snakemake import logger
 from snakemake.remote.SFTP import RemoteProvider as sftp_rp
 from snakemake.io import ancient
 from snakemake.workflow import glob_wildcards
-from stagecache.util import parse_url
-from stagecache.main import cache_target
-from stagecache.util import InsufficientSpaceError
+from jme.stagecache.util import parse_url
+from jme.stagecache.main import cache_target
+from jme.stagecache.cache import InsufficientSpaceError
 
 
 __version__ = "0.0.5"

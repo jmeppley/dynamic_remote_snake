@@ -1,4 +1,4 @@
-from jme.drs import apply_defaults, remote_wrapper
+from jme.dynamic_remote_snake.remote import apply_defaults, remote_wrapper
 
 # prefix for generated files
 fprf = 'test/output/'
