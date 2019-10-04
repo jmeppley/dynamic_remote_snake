@@ -12,7 +12,7 @@ from stagecache.util import InsufficientSpaceError
 __version__ = "0.0.5"
 
 
-URL_REXP = re.compile(r'^([A-Za-z]+)://(([^/]+)/.+)$')
+#URL_REXP = re.compile(r'^([A-Za-z]+)://(([^/]+)/.+)$')
 #mnt_rexp = re.compile(r'^(/mnt/([a-z]+ine)/.+)$')
 
 # cache redentials for known hosts
@@ -166,7 +166,6 @@ def get_dl_snakefile():
     return os.path.dirname(
         os.path.dirname(
             os.path.dirname(os.path.abspath(__file__)))) + "/download.snake"
-
 
 
 def apply_defaults(config, defaults):
