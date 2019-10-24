@@ -1,4 +1,6 @@
-from jme.dynamic_remote_snake.remote import apply_defaults, remote_wrapper
+from jme.dynamic_remote_snake.remote import apply_defaults, \
+                                            remote_wrapper, \
+                                            get_dl_snakefile
 
 # prefix for generated files
 fprf = 'test/output/'
@@ -27,7 +29,7 @@ for name, glob in config['globs'].items():
         fkey = name + "/" + file_name
         config['files_to_inspect'][fkey] = glob.format(file_name=file_name)
 
-include: '../download.snake'
+include: get_dl_snakefile()
 
 rule outputs:
     input:

@@ -1,5 +1,11 @@
 from jme.dynamic_remote_snake.remote import *
 
+def test_get_dl_snakefile():
+    apipath = get_dl_snakefile()
+    devpath = os.path.abspath('jme/dynamic_remote_snake/download.snake')
+    print(apipath, devpath)
+    assert apipath == devpath
+
 def test_apply_defaults():
     " make sure this works as intended "
     config = {

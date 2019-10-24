@@ -17,7 +17,7 @@ __version__ = "0.0.5"
 
 # cache redentials for known hosts
 providers = {}
-def get_provider(protocol, host, config):
+def get_provider(resource, config):
     """
     Creates a unique RemoteProvider object for each (protocol, host) pair.
 
@@ -32,6 +32,9 @@ def get_provider(protocol, host, config):
     your configuration
     """
 
+    protocol = resource.protocol
+    host = resource.host
+    user = resource.user
     provider_key = (protocol, host)
     protocol = protocol.upper()
     if provider_key not in providers:
@@ -42,6 +45,8 @@ def get_provider(protocol, host, config):
                                 .get(protocol, {}) \
                                 .get(host, {})
         apply_defaults(remote_options, remote_defaults)
+        if user is not None:
+            remote_options['username'] = user
         logger.debug("Creating RemoteProvider for {protocol} "
                      "using:\n{remote_options}".format(**vars()))
         if protocol in ['SFTP', 'SCP']:
@@ -70,7 +75,8 @@ def infer_provider(source, config, glob=False):
         if resource is not None:
             logger.debug("EXPLICIT URL")
             # replace source file with a remote object
-            return get_provider(resource), source_path
+            return (get_provider(resource, config),
+                    resource.host + resource.path)
 
 
     except Exception as exc:
@@ -90,7 +96,7 @@ def get_cache_path(remote_path, config):
             return None
     return cache_path
 
-def remote_wrapper(raw_source, config, glob=False):
+def remote_wrapper(raw_source, config, glob=False, **kwargs):
     """
     if file is a remote url
          ( or a missing netowrk mount )
@@ -132,6 +138,8 @@ def remote_wrapper(raw_source, config, glob=False):
             else:
                 config.setdefault('download_map', {})[source] = \
                         {'url': raw_source}
+                if 'atype' in kwargs:
+                    config['download_map'][source]['atype'] = kwargs['atype']
                 return local_path
 
         if use_rsync_for_sftp:
@@ -158,7 +166,11 @@ def remote_wrapper(raw_source, config, glob=False):
 
 
 def get_dl_snakefile():
-    """ attempt to locate downloads.snake """
+    """ located in package dir """
+    return os.path.dirname(os.path.abspath(__file__)) + "/download.snake"
+
+    # old way (only worked for conda
+    """
     if "CONDA_PREFIX" in os.environ:
         return os.environ['CONDA_PREFIX'] + "/share/dynamic_remote_snake/snake/download.snake"
 
@@ -166,7 +178,7 @@ def get_dl_snakefile():
     return os.path.dirname(
         os.path.dirname(
             os.path.dirname(os.path.abspath(__file__)))) + "/download.snake"
-
+    """
 
 def apply_defaults(config, defaults):
     """ recursively appy defaults to nested dicts """

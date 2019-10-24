@@ -86,13 +86,21 @@ if 'cache' in config.get('remote',{}):
     rule download_cache:
         output: config['remote']['cache']['path'] + "/{dl_path}"
         params:
-            url=lambda w: download_map[w.dl_path]['url']
+            url=lambda w: download_map[w.dl_path]['url'],
+            atype=lambda w: "-a {}".format(download_map[w.dl_path]['atype']) \
+                            if 'atype' in download_map[w.dl_path] \
+                            else ""
         resources:
             disk=1,
             download=1,
             mem_mb=1000
         shell: """
-                stagecache -c {config[remote][cache][path]} {params.url}
+                stagecache {params.atype} -c {config[remote][cache][path]} \
+                    {params.url}
+                # hack to deal with prefixes
+                if [ $? -eq 0 ]; then
+                    touch {output}
+                fi
                """
 
 elif config.get('remote', {}).get('SFTP', {}).get('use_rsync', False):
