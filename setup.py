@@ -27,6 +27,7 @@ setup(name=NAME,
       download_url=DOWNLOAD_URL,
       license=LICENSE,
 	  packages=find_namespace_packages(include=['jme.*']),
+      package_data={'jme.dynamic_remote_snake': ['*.snake']},
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
