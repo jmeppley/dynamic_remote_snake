@@ -1,3 +1,11 @@
+"""
+To test dr.snake run:
+
+ snakemake -s test/test.snake
+
+"""
+
+
 from jme.dynamic_remote_snake.remote import apply_defaults, \
                                             remote_wrapper, \
                                             get_dl_snakefile
@@ -9,7 +17,7 @@ defaults = {
     'remote_path': fprf + "remote",
     'files_to_inspect': {
         'local': 'setup.py',
-        'remote': 'HTTPS://github.com/jmeppley/workflows/blob/master/README.md',
+        'github': 'HTTPS://github.com/jmeppley/workflows/blob/master/README.md',
     },
     'globs': {
         'local': 'jme/drs/{file_name}',
@@ -36,9 +44,12 @@ rule outputs:
         counts=expand(fprf + '{name}.wc', name=config['files_to_inspect']),
         lists=expand(fprf + '{name}.files', name=config['globs'])
 
+def get_input(wildcards):
+    path = config['files_to_inspect'][wildcards.name]
+    return remote_wrapper(path, config)
+
 rule inspect_with_wc:
-    input: lambda w: remote_wrapper(config['files_to_inspect'][w.name], \
-                                    config)
+    input: get_input
     output: fprf + '{name}.wc'
     shell: """
     if [ -d {input} ]; then
