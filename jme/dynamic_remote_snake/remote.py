@@ -1,5 +1,6 @@
 import re
 import os
+import logging
 from snakemake import logger
 from snakemake.remote.SFTP import RemoteProvider as sftp_rp
 from snakemake.io import ancient
@@ -7,13 +8,13 @@ from snakemake.workflow import glob_wildcards
 from jme.stagecache.util import parse_url
 from jme.stagecache.main import cache_target
 from jme.stagecache.cache import InsufficientSpaceError
+from jme.stagecache.config import get_config, apply_defaults
 
 
 __version__ = "0.0.5"
 
-
-#URL_REXP = re.compile(r'^([A-Za-z]+)://(([^/]+)/.+)$')
-#mnt_rexp = re.compile(r'^(/mnt/([a-z]+ine)/.+)$')
+# propogate snakemake log level to code using logging module
+logging.basicConfig(level=logger.logger.level)
 
 # cache redentials for known hosts
 providers = {}
@@ -96,6 +97,43 @@ def get_cache_path(remote_path, config):
             return None
     return cache_path
 
+def check_cache_config(config):
+    " if a cache is configured, pull in default settings "
+
+    if 'cache' in config.get('remote',{}) and "__cache_config" not in config:
+        # fill in remote settings from stagecache, but don't overwrite
+        # snakemake config
+
+        try:
+            # cache location should be in config:remote:cache:path 
+            cache_path = config['remote']['cache']['path']
+            if not isinstance(cache_path, str):
+                raise Exception
+        except:
+            #  but we'll support two other cases:
+            if isinstance(config['remote']['cache'],str):
+                #    config:remote:cache is a string
+                #      - assume string is path to cache
+                cache_path = config['remote']['cache']
+            else:
+                #    config:remote:cache is anything else
+                #      - use default cache location as configured by stagecache
+                cache_path = None
+                logger.warning("Can't make sense of config:remote:cache!! "
+                               "config:remote:cache:path should be a string. "
+                               "Using stagecache defaults instead.")
+            #  in both cases, config:remote:cache gets overwritten
+            del config['remote']['cache']
+
+        logger.debug("cache path: cache_path")
+
+        # get config for cache and merge with snakemake config
+        apply_defaults(config['remote'], get_config(cache_path)['remote']) 
+
+        # it only has to be done once per instance
+        config['__cache_config'] = True
+
+
 def remote_wrapper(raw_source, config, glob=False, **kwargs):
     """
     if file is a remote url
@@ -103,6 +141,9 @@ def remote_wrapper(raw_source, config, glob=False, **kwargs):
     return remote provider object for downloading
     or return wildcard lists if glob=True (using glob_wildcards)
     """
+
+    check_cache_config(config)
+
     provider, source = infer_provider(raw_source, config, glob=glob)
     logger.debug("provider: {}\nsource: {}".format(provider, source))
 
@@ -130,16 +171,17 @@ def remote_wrapper(raw_source, config, glob=False, **kwargs):
             cache_time = config['remote']['cache'].get('time', None)
             try:
                 local_path = cache_target(raw_source, cache_path,
-                                          time=cache_time,
+                                          time=cache_time, 
+                                          atype=kwargs.get('atype', 'file'),
                                           dry_run=True)
             except InsufficientSpaceError as ise:
                 # fall back to local rsync if the cache is full
                 pass
             else:
-                config.setdefault('download_map', {})[source] = \
+                config.setdefault('download_map', {})[path] = \
                         {'url': raw_source}
                 if 'atype' in kwargs:
-                    config['download_map'][source]['atype'] = kwargs['atype']
+                    config['download_map'][path]['atype'] = kwargs['atype']
                 return local_path
 
         if use_rsync_for_sftp:
