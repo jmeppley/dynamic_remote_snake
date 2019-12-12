@@ -6,15 +6,17 @@ from snakemake.remote.SFTP import RemoteProvider as sftp_rp
 from snakemake.io import ancient
 from snakemake.workflow import glob_wildcards
 from jme.stagecache.util import parse_url
-from jme.stagecache.main import cache_target
-from jme.stagecache.cache import InsufficientSpaceError
+from jme.stagecache.text_metadata import TargetMetadata
+from jme.stagecache.cache import InsufficientSpaceError, Cache
 from jme.stagecache.config import get_config, apply_defaults
 
 
 __version__ = "0.0.5"
 
 # propogate snakemake log level to code using logging module
-logging.basicConfig(level=logger.logger.level)
+if logger.logger.level <= logging.DEBUG:
+    # if logging level below default, report everything
+    logging.basicConfig(level=logger.logger.level)
 
 # cache redentials for known hosts
 providers = {}
@@ -168,21 +170,28 @@ def remote_wrapper(raw_source, config, glob=False, **kwargs):
     full_path = "/" + path
     if isinstance(provider, sftp_rp):
         if cache_path is not None:
-            cache_time = config['remote']['cache'].get('time', None)
-            try:
-                local_path = cache_target(raw_source, cache_path,
-                                          time=cache_time, 
-                                          atype=kwargs.get('atype', 'file'),
-                                          dry_run=True)
-            except InsufficientSpaceError as ise:
-                # fall back to local rsync if the cache is full
-                pass
-            else:
-                config.setdefault('download_map', {})[path] = \
-                        {'url': raw_source}
-                if 'atype' in kwargs:
-                    config['download_map'][path]['atype'] = kwargs['atype']
-                return local_path
+            # don't do a full check, just get the path
+            cache = Cache(cache_path)
+            target_metadata = TargetMetadata(cache,
+                                             "/" + source,
+                                             kwargs.get('atype', 'file'),
+                                            )
+            local_path = target_metadata.cached_target
+            # the full way:
+            #cache_time = config['remote']['cache'].get('time', None)
+            #try:
+            #    local_path = cache_target(raw_source, cache_path,
+            #                              time=cache_time, 
+            #                              dry_run=True)
+            #except InsufficientSpaceError as ise:
+            #    # fall back to local rsync if the cache is full
+            #    pass
+            #else:
+            config.setdefault('download_map', {})[path] = \
+                    {'url': raw_source}
+            if 'atype' in kwargs:
+                config['download_map'][path]['atype'] = kwargs['atype']
+            return local_path
 
         if use_rsync_for_sftp:
                 # download with rsync
