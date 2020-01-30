@@ -173,7 +173,7 @@ def remote_wrapper(raw_source, config, glob=False, **kwargs):
             # don't do a full check, just get the path
             cache = Cache(cache_path)
             target_metadata = TargetMetadata(cache,
-                                             "/" + source,
+                                             full_path,
                                              kwargs.get('atype', 'file'),
                                             )
             local_path = target_metadata.cached_target
