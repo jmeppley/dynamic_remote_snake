@@ -67,22 +67,6 @@ download_map = config.setdefault('download_map', {})
 # snakemake remotes don't work with slurm
 localrules: download_remote
 
-rule download_remote:
-    """
-    Uses snakemake remote mechanism to download file 
-    and creates temporary symlink in remote/ to avoid name collisions
-    """
-    input: lambda w: download_map[w.dl_path]['remote']
-    output: config.get('remote_path', 'remote') + "/{dl_path}"
-    resources:
-        disk=1,
-        download=1,
-        mem_mb=1000
-    shell: """
-            rm -f {output}
-            mv {input} {output}
-           """
-
 if 'cache' in config.get('remote',{}):
     rule download_cache:
         output: config['remote']['cache']['path'] + "/{dl_path}"
@@ -104,7 +88,8 @@ if 'cache' in config.get('remote',{}):
                 fi
                """
 
-elif config.get('remote', {}).get('SFTP', {}).get('use_rsync', False):
+if config.get('remote', {}).get('SFTP', {}).get('use_rsync', True):
+    logger.debug("LOADING rsync rule")
     rule download_rsync:
         output: temp("rsync/{dl_path}")
         params:
@@ -119,4 +104,20 @@ elif config.get('remote', {}).get('SFTP', {}).get('use_rsync', False):
         shell: """
                 mkdir -p {params.dl_path}
                 rsync -a {params.user}@{params.host}:{params.remote_path} {params.dl_path}
+               """
+else:
+    rule download_remote:
+        """
+        Uses snakemake remote mechanism to download file 
+        and creates temporary symlink in remote/ to avoid name collisions
+        """
+        input: lambda w: download_map[w.dl_path]['remote']
+        output: config.get('remote_path', 'remote') + "/{dl_path}"
+        resources:
+            disk=1,
+            download=1,
+            mem_mb=1000
+        shell: """
+                rm -f {output}
+                mv {input} {output}
                """

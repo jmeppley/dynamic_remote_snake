@@ -1,6 +1,5 @@
 import re
 import os
-import logging
 from snakemake import logger
 from snakemake.remote.SFTP import RemoteProvider as sftp_rp
 from snakemake.io import ancient
@@ -9,14 +8,7 @@ from jme.stagecache.util import parse_url
 from jme.stagecache.text_metadata import TargetMetadata
 from jme.stagecache.cache import InsufficientSpaceError, Cache
 from jme.stagecache.config import get_config, apply_defaults
-
-
-__version__ = "0.0.5"
-
-# propogate snakemake log level to code using logging module
-if logger.logger.level <= logging.DEBUG:
-    # if logging level below default, report everything
-    logging.basicConfig(level=logger.logger.level)
+from jme.dynamic_remote_snake import __version__
 
 # cache redentials for known hosts
 providers = {}
