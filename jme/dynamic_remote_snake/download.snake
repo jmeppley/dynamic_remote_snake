@@ -64,9 +64,6 @@ from jme.dynamic_remote_snake.remote import remote_wrapper
 # dictionary for tracking remote files
 download_map = config.setdefault('download_map', {})
 
-# snakemake remotes don't work with slurm
-localrules: download_remote
-
 if 'cache' in config.get('remote',{}):
     rule download_cache:
         output: config['remote']['cache']['path'] + "/{dl_path}"
@@ -106,6 +103,10 @@ if config.get('remote', {}).get('SFTP', {}).get('use_rsync', True):
                 rsync -a {params.user}@{params.host}:{params.remote_path} {params.dl_path}
                """
 else:
+
+    # snakemake remotes don't work with slurm
+    localrules: download_remote
+
     rule download_remote:
         """
         Uses snakemake remote mechanism to download file 
