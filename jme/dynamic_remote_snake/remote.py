@@ -179,8 +179,15 @@ def remote_wrapper(raw_source, config, glob=False, **kwargs):
             #    # fall back to local rsync if the cache is full
             #    pass
             #else:
+
+            # make url explicit (in case shell defaults diferent than this
+            # config)
+            # NOTE: this prevents hardcoded passwords. I'm OK with that.
+            user = provider.kwargs['username']
+            cache_url = f"SFTP://{user}@{host}/{path}"
+
             config.setdefault('download_map', {})[path] = \
-                    {'url': raw_source}
+                    {'url': cache_url}
             if 'atype' in kwargs:
                 config['download_map'][path]['atype'] = kwargs['atype']
             return local_path
